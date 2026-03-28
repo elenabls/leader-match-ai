@@ -7,30 +7,18 @@ import { Briefcase } from "lucide-react";
 interface Props {
   profile: CandidateProfile;
   role?: string;
-  color?: string;
 }
 
 const classificationColor = (c: string) => {
-  if (c.toLowerCase().includes("speed")) return "bg-blue-500/10 text-blue-600 border-blue-200";
-  if (c.toLowerCase().includes("quality")) return "bg-purple-500/10 text-purple-600 border-purple-200";
-  if (c.toLowerCase().includes("hybrid")) return "bg-amber-500/10 text-amber-600 border-amber-200";
-  return "bg-emerald-500/10 text-emerald-600 border-emerald-200";
-};
-
-const roleFitColor = (r: string) => {
-  const map: Record<string, string> = {
-    Production: "bg-blue-500/10 text-blue-600",
-    Quality: "bg-purple-500/10 text-purple-600",
-    Operations: "bg-teal-500/10 text-teal-600",
-    Innovation: "bg-orange-500/10 text-orange-600",
-    "General Leadership": "bg-emerald-500/10 text-emerald-600",
-  };
-  return map[r] || "bg-muted text-muted-foreground";
+  if (c.toLowerCase().includes("speed")) return "border-primary/30 text-primary";
+  if (c.toLowerCase().includes("quality")) return "border-purple-500/30 text-purple-400";
+  if (c.toLowerCase().includes("hybrid")) return "border-amber-500/30 text-amber-400";
+  return "border-emerald-500/30 text-emerald-400";
 };
 
 const CandidateProfileCard = ({ profile, role }: Props) => {
   return (
-    <Card className="border-border shadow-sm">
+    <Card className="card-metallic glass-border shadow-lg">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base">{profile.name}</CardTitle>
@@ -41,19 +29,17 @@ const CandidateProfileCard = ({ profile, role }: Props) => {
             {profile.classification}
           </Badge>
           {profile.suggested_role_fit && (
-            <Badge className={`text-xs ${roleFitColor(profile.suggested_role_fit)}`} variant="outline">
+            <Badge className="text-xs border-muted-foreground/20 text-muted-foreground" variant="outline">
               <Briefcase className="h-3 w-3 mr-1" />
               {profile.suggested_role_fit}
             </Badge>
           )}
-          <span className="text-xs text-muted-foreground capitalize">
-            {profile.traits.communication_style}
-          </span>
+          <span className="text-xs text-muted-foreground capitalize">{profile.traits.communication_style}</span>
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="space-y-2.5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Aggregated Traits</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Aggregated Traits</p>
           <TraitBar label="Speed (Execution)" value={profile.traits.speed} />
           <TraitBar label="Quality (Strictness)" value={profile.traits.strictness} />
           <TraitBar label="Risk Tolerance" value={profile.traits.risk_tolerance} />
@@ -64,7 +50,7 @@ const CandidateProfileCard = ({ profile, role }: Props) => {
 
         {profile.detected_keywords && (
           <div className="space-y-1.5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Detected Keywords</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Detected Keywords</p>
             <div className="space-y-1">
               {Object.entries(profile.detected_keywords).map(([category, keywords]) => {
                 if (!keywords || keywords.length === 0) return null;
@@ -73,7 +59,7 @@ const CandidateProfileCard = ({ profile, role }: Props) => {
                   <div key={category} className="flex flex-wrap items-center gap-1">
                     <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground w-16 shrink-0">{label}</span>
                     {(keywords as string[]).slice(0, 5).map((kw, i) => (
-                      <Badge key={i} variant="outline" className="text-[10px] font-normal px-1.5 py-0">{kw}</Badge>
+                      <Badge key={i} variant="outline" className="text-[10px] font-normal px-1.5 py-0 border-border/50">{kw}</Badge>
                     ))}
                     {(keywords as string[]).length > 5 && (
                       <span className="text-[10px] text-muted-foreground">+{(keywords as string[]).length - 5}</span>
@@ -87,10 +73,10 @@ const CandidateProfileCard = ({ profile, role }: Props) => {
 
         {profile.cv_analysis?.leadership_indicators?.length > 0 && (
           <div className="space-y-1.5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Leadership Indicators</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Leadership Indicators</p>
             <div className="flex flex-wrap gap-1.5">
               {profile.cv_analysis.leadership_indicators.map((ind, i) => (
-                <Badge key={i} variant="outline" className="text-xs font-normal">{ind}</Badge>
+                <Badge key={i} variant="outline" className="text-xs font-normal border-primary/20 text-primary/80">{ind}</Badge>
               ))}
             </div>
           </div>
@@ -98,10 +84,10 @@ const CandidateProfileCard = ({ profile, role }: Props) => {
 
         {profile.feedback_analysis?.leadership_behavior_signals?.length > 0 && (
           <div className="space-y-1.5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Behavioral Signals</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Behavioral Signals</p>
             <div className="flex flex-wrap gap-1.5">
               {profile.feedback_analysis.leadership_behavior_signals.map((sig, i) => (
-                <Badge key={i} variant="outline" className="text-xs font-normal">{sig}</Badge>
+                <Badge key={i} variant="outline" className="text-xs font-normal border-border/50">{sig}</Badge>
               ))}
             </div>
           </div>
