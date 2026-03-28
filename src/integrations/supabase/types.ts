@@ -14,7 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      leader_profiles: {
+        Row: {
+          classification: string
+          created_at: string
+          id: string
+          name: string
+          suggested_role_fit: string
+          traits: Json
+        }
+        Insert: {
+          classification: string
+          created_at?: string
+          id?: string
+          name: string
+          suggested_role_fit: string
+          traits?: Json
+        }
+        Update: {
+          classification?: string
+          created_at?: string
+          id?: string
+          name?: string
+          suggested_role_fit?: string
+          traits?: Json
+        }
+        Relationships: []
+      }
+      performance_records: {
+        Row: {
+          compatibility_score: number
+          created_at: string
+          id: string
+          leader_a_name: string
+          leader_b_name: string
+          notes: string | null
+          outcome: string
+          risks: string[] | null
+          scenario: string
+          strengths: string[] | null
+        }
+        Insert: {
+          compatibility_score?: number
+          created_at?: string
+          id?: string
+          leader_a_name: string
+          leader_b_name: string
+          notes?: string | null
+          outcome?: string
+          risks?: string[] | null
+          scenario: string
+          strengths?: string[] | null
+        }
+        Update: {
+          compatibility_score?: number
+          created_at?: string
+          id?: string
+          leader_a_name?: string
+          leader_b_name?: string
+          notes?: string | null
+          outcome?: string
+          risks?: string[] | null
+          scenario?: string
+          strengths?: string[] | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
