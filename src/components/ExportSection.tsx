@@ -53,8 +53,8 @@ const ExportSection = () => {
           "Compatibility Score": r.compatibility_score,
           Scenario: r.scenario,
           Outcome: r.outcome,
-          Strengths: (r.strengths || []).join("; "),
-          Risks: (r.risks || []).join("; "),
+          Strengths: ((r as any).strengths || []).join("; "),
+          Risks: ((r as any).risks || []).join("; "),
           Date: new Date(r.created_at).toLocaleDateString(),
         }));
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(compData), "Compatibility Scores");
