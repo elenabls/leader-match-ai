@@ -13,6 +13,22 @@ interface CandidateInput {
   peerReviews: string;
 }
 
+async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3): Promise<Response> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const response = await fetch(url, options);
+    if (response.ok) return response;
+    if (response.status === 503 || response.status === 429) {
+      const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
+      console.log(`Retry ${attempt + 1}/${maxRetries} after ${Math.round(delay)}ms (status ${response.status})`);
+      await new Promise((r) => setTimeout(r, delay));
+      continue;
+    }
+    return response; // Non-retryable error
+  }
+  // Final attempt
+  return fetch(url, options);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -163,14 +179,14 @@ Analyze through all 8 agents and return structured evaluation.`;
       required: ["name", "classification", "suggested_role_fit", "traits", "cv_analysis", "feedback_analysis", "detected_keywords"],
     };
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetchWithRetry("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
@@ -296,14 +312,14 @@ CRITICAL:
 
   const userPrompt = leaders.map((l, i) => `LEADER ${i + 1} - ${l.name}:\n${l.data}`).join("\n\n");
 
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const response = await fetchWithRetry("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
+      model: "google/gemini-2.5-flash",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
