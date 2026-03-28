@@ -24,8 +24,8 @@ const ResultsDisplay = ({ result }: Props) => {
     <div className="space-y-6 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
       {/* Candidate Profiles */}
       <div className="grid gap-5 sm:grid-cols-2">
-        <CandidateProfileCard profile={candidateA} role="Production Head" color="primary" />
-        <CandidateProfileCard profile={candidateB} role="Quality Head" color="accent" />
+        <CandidateProfileCard profile={candidateA} />
+        <CandidateProfileCard profile={candidateB} />
       </div>
 
       {/* Compatibility Score */}

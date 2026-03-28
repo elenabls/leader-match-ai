@@ -17,59 +17,63 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { candidateA, candidateB, scenario } = await req.json() as {
-      candidateA: CandidateInput;
-      candidateB: CandidateInput;
-      scenario: string;
+    const body = await req.json();
+    const { candidateA, candidateB, scenario, businessFunction, mode } = body as {
+      candidateA?: CandidateInput;
+      candidateB?: CandidateInput;
+      scenario?: string;
+      businessFunction?: string;
+      mode?: "pair" | "bulk";
+      leaders?: { name: string; data: string }[];
     };
 
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    // Bulk mode
+    if (mode === "bulk" && body.leaders) {
+      return await handleBulk(body.leaders, businessFunction || "operations", LOVABLE_API_KEY);
+    }
+
+    // Pair mode (default)
     if (!candidateA || !candidateB || !scenario) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const domainContext = businessFunction
+      ? `\nBUSINESS DOMAIN: ${businessFunction}. Adjust trait importance accordingly:\n- Manufacturing → speed and execution most important\n- Quality Assurance → precision, strictness, compliance most important\n- Innovation → risk-taking, creativity, experimentation most important\n- Operations → reliability, consistency, process management most important`
+      : "";
 
-    const systemPrompt = `You are a 7-agent leadership evaluation system that analyzes candidate documents using keyword-based reasoning. Process the input through these agents sequentially:
+    const systemPrompt = `You are an 8-agent organizational decision intelligence system that analyzes leader documents using keyword-based reasoning. Process through these agents:
 
 AGENT 1 - PDF Parsing Agent:
-The text has already been extracted from PDF documents. Combine all text sources per candidate into a unified profile.
+Text already extracted. Combine all text sources per candidate into a unified profile.
 
 AGENT 2 - Keyword & Signal Detection Agent:
-Scan the text for specific keywords and phrases indicating traits. Report which keywords were found.
-
-Keyword categories to detect:
+Scan for keywords indicating traits:
 - Speed / Execution: fast, rapid, delivered quickly, accelerated, execution, deadline-driven, high throughput, agile, quick turnaround, on-time delivery, efficient
 - Quality / Precision: detail-oriented, quality, accuracy, compliance, precision, standards, defect reduction, meticulous, thorough, zero-defect, audit, inspection
 - Risk-taking: innovative, experimental, bold, transformation, change-driven, disruptive, pioneering, entrepreneurial, venture, startup
 - Stability / Reliability: consistent, reliable, process-driven, structured, disciplined, methodical, systematic, dependable, steady, predictable
 - Communication / Leadership: collaborative, decisive, assertive, team-oriented, leadership, mentoring, coaching, empowering, strategic, visionary, influential
 
-Count frequency and strength of signals. Report the actual keywords found in each category.
-
 AGENT 3 - Trait Extraction Agent:
-Convert detected signals into structured scores (1-10):
-- speed (execution ability)
-- strictness (quality/precision focus)
-- risk_tolerance
-- reliability (consistency)
-- communication_style (descriptive string)
-- emotional_intelligence (1-10)
-- experience (based on years/seniority indicators)
+Convert signals into scores (1-10): speed, strictness, risk_tolerance, reliability, communication_style, emotional_intelligence, experience.
 
-AGENT 4 - Role Classification Agent:
-Classify each candidate as one of:
-- "Speed-oriented" (dominant speed trait)
-- "Quality-oriented" (dominant strictness trait)
+AGENT 4 - Classification Agent:
+Classify each leader dynamically:
+- "Speed-oriented" (dominant speed/execution traits)
+- "Quality-oriented" (dominant strictness/precision traits)
 - "Balanced" (no single dominant trait)
+- "Hybrid" (multiple strong dominant traits)
+
+Also suggest role fit: "Production", "Quality", "Operations", "Innovation", or "General Leadership" based on trait profile.
+Do NOT assume predefined roles — infer from the data.${domainContext}
 
 AGENT 5 - Interaction Agent:
-Compare both candidates. Detect:
-- Conflicts (e.g. very fast vs very strict)
-- Alignments (similar communication/leadership style)
-- Complementarities (traits that balance each other)
+Compare both leaders. Detect: Conflicts, Alignments, Complementarities.
 
 AGENT 6 - Scenario Agent:
 Adjust weights for scenario "${scenario}":
@@ -77,37 +81,41 @@ Adjust weights for scenario "${scenario}":
 - Growth: prioritize risk-taking and innovation
 - Stability: prioritize quality, strictness, and reliability
 
-AGENT 7 - Decision Agent:
-Compute Compatibility Score (0-100). Generate strengths, risks, explanation, and scenario-based recommendations. Also compute what the score would be under ALL three scenarios.
+AGENT 7 - Learning Agent:
+Note patterns that would improve future predictions. Flag if any traits seem inconsistent across documents.
 
-CRITICAL RULES:
-- Base ALL scores on actual keywords and phrases found in the text
-- Report detected keywords for transparency
-- Be SPECIFIC — reference actual content from the documents
-- If documents are sparse, note low confidence and score conservatively
-- Show clear reasoning connecting keywords → traits → scores`;
+AGENT 8 - Decision Agent:
+Compute Compatibility Score (0-100). Generate strengths, risks, explanation, reasoning, and scenario recommendations. Compute score under ALL three scenarios.
 
-    const userPrompt = `CANDIDATE A (Production Head):
-CV/Resume text: ${candidateA.cv || "[Not provided]"}
-Supervisor Notes text: ${candidateA.supervisorNotes || "[Not provided]"}
-Recommendation Letter text: ${candidateA.recommendationLetter || "[Not provided]"}
-Peer/Manager Reviews text: ${candidateA.peerReviews || "[Not provided]"}
+CRITICAL:
+- Base ALL scores on actual keywords found
+- Report detected keywords
+- Be SPECIFIC to the documents
+- If sparse, note low confidence
+- Do NOT hardcode roles — infer everything from the text`;
 
-CANDIDATE B (Quality Head):
-CV/Resume text: ${candidateB.cv || "[Not provided]"}
-Supervisor Notes text: ${candidateB.supervisorNotes || "[Not provided]"}
-Recommendation Letter text: ${candidateB.recommendationLetter || "[Not provided]"}
-Peer/Manager Reviews text: ${candidateB.peerReviews || "[Not provided]"}
+    const userPrompt = `LEADER A:
+CV/Resume: ${candidateA.cv || "[Not provided]"}
+Supervisor Notes: ${candidateA.supervisorNotes || "[Not provided]"}
+Recommendation Letter: ${candidateA.recommendationLetter || "[Not provided]"}
+Peer/Manager Reviews: ${candidateA.peerReviews || "[Not provided]"}
+
+LEADER B:
+CV/Resume: ${candidateB.cv || "[Not provided]"}
+Supervisor Notes: ${candidateB.supervisorNotes || "[Not provided]"}
+Recommendation Letter: ${candidateB.recommendationLetter || "[Not provided]"}
+Peer/Manager Reviews: ${candidateB.peerReviews || "[Not provided]"}
 
 SCENARIO: ${scenario}
 
-Analyze these candidates through all 7 agents and return the structured evaluation.`;
+Analyze through all 8 agents and return structured evaluation.`;
 
     const candidateSchema = {
       type: "object" as const,
       properties: {
         name: { type: "string" as const },
-        classification: { type: "string" as const, enum: ["Speed-oriented", "Quality-oriented", "Balanced"] },
+        classification: { type: "string" as const, enum: ["Speed-oriented", "Quality-oriented", "Balanced", "Hybrid"] },
+        suggested_role_fit: { type: "string" as const, enum: ["Production", "Quality", "Operations", "Innovation", "General Leadership"] },
         traits: {
           type: "object" as const,
           properties: {
@@ -152,7 +160,7 @@ Analyze these candidates through all 7 agents and return the structured evaluati
           required: ["speed_keywords", "quality_keywords", "risk_keywords", "stability_keywords", "leadership_keywords"],
         },
       },
-      required: ["name", "classification", "traits", "cv_analysis", "feedback_analysis", "detected_keywords"],
+      required: ["name", "classification", "suggested_role_fit", "traits", "cv_analysis", "feedback_analysis", "detected_keywords"],
     };
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -171,7 +179,7 @@ Analyze these candidates through all 7 agents and return the structured evaluati
           type: "function",
           function: {
             name: "return_evaluation",
-            description: "Return the structured 7-agent leadership evaluation result with keyword detection",
+            description: "Return the structured 8-agent leadership evaluation result",
             parameters: {
               type: "object",
               properties: {
@@ -230,7 +238,7 @@ Analyze these candidates through all 7 agents and return the structured evaluati
         });
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Usage limit reached. Please add credits to your workspace." }), {
+        return new Response(JSON.stringify({ error: "Usage limit reached. Please add credits." }), {
           status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -246,7 +254,7 @@ Analyze these candidates through all 7 agents and return the structured evaluati
 
     if (!toolCall?.function?.arguments) {
       console.error("No tool call in response:", JSON.stringify(aiResponse));
-      return new Response(JSON.stringify({ error: "AI returned an unexpected format" }), {
+      return new Response(JSON.stringify({ error: "AI returned unexpected format" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -265,3 +273,120 @@ Analyze these candidates through all 7 agents and return the structured evaluati
     });
   }
 });
+
+async function handleBulk(
+  leaders: { name: string; data: string }[],
+  businessFunction: string,
+  apiKey: string
+) {
+  const systemPrompt = `You are an organizational decision intelligence system. Analyze multiple leaders and find optimal pairings.
+
+For each leader, extract traits (speed, strictness, risk_tolerance, reliability, communication_style, emotional_intelligence, experience) scored 1-10.
+Classify each as: Speed-oriented, Quality-oriented, Balanced, or Hybrid.
+Suggest role fit: Production, Quality, Operations, Innovation, or General Leadership.
+
+Business domain: ${businessFunction}
+
+Then evaluate ALL possible pairings and rank them by compatibility.
+
+CRITICAL:
+- Infer everything from the text
+- Be specific to each leader's data
+- Rank pairings by actual compatibility`;
+
+  const userPrompt = leaders.map((l, i) => `LEADER ${i + 1} - ${l.name}:\n${l.data}`).join("\n\n");
+
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      tools: [{
+        type: "function",
+        function: {
+          name: "return_bulk_analysis",
+          description: "Return bulk leader analysis with optimal pairings",
+          parameters: {
+            type: "object",
+            properties: {
+              leaders: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    name: { type: "string" },
+                    classification: { type: "string" },
+                    suggested_role_fit: { type: "string" },
+                    traits: {
+                      type: "object",
+                      properties: {
+                        speed: { type: "number" },
+                        strictness: { type: "number" },
+                        risk_tolerance: { type: "number" },
+                        reliability: { type: "number" },
+                        communication_style: { type: "string" },
+                        emotional_intelligence: { type: "number" },
+                        experience: { type: "number" },
+                      },
+                      required: ["speed", "strictness", "risk_tolerance", "reliability", "communication_style", "emotional_intelligence", "experience"],
+                    },
+                  },
+                  required: ["name", "classification", "suggested_role_fit", "traits"],
+                },
+              },
+              pairings: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    leaderA: { type: "string" },
+                    leaderB: { type: "string" },
+                    compatibility_score: { type: "number" },
+                    strengths: { type: "array", items: { type: "string" } },
+                    risks: { type: "array", items: { type: "string" } },
+                    best_scenario: { type: "string" },
+                  },
+                  required: ["leaderA", "leaderB", "compatibility_score", "strengths", "risks", "best_scenario"],
+                },
+              },
+            },
+            required: ["leaders", "pairings"],
+          },
+        },
+      }],
+      tool_choice: { type: "function", function: { name: "return_bulk_analysis" } },
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    console.error("Bulk AI error:", response.status, errText);
+    return new Response(JSON.stringify({ error: "Bulk analysis failed" }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const aiResponse = await response.json();
+  const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
+
+  if (!toolCall?.function?.arguments) {
+    return new Response(JSON.stringify({ error: "AI returned unexpected format" }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const result = typeof toolCall.function.arguments === "string"
+    ? JSON.parse(toolCall.function.arguments)
+    : toolCall.function.arguments;
+
+  return new Response(JSON.stringify(result), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
