@@ -1,94 +1,57 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
-
 @layer base {
   :root {
-    --background: 220 20% 97%;
-    --foreground: 224 30% 12%;
+    --background: 220 15% 8%;
+    --foreground: 210 20% 92%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 224 30% 12%;
+    --card: 220 15% 11%;
+    --card-foreground: 210 20% 92%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 224 30% 12%;
+    --popover: 220 15% 11%;
+    --popover-foreground: 210 20% 92%;
 
-    --primary: 234 62% 52%;
+    --primary: 213 80% 54%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 18% 93%;
-    --secondary-foreground: 224 30% 12%;
+    --secondary: 220 12% 16%;
+    --secondary-foreground: 210 20% 82%;
 
-    --muted: 220 18% 93%;
-    --muted-foreground: 220 10% 46%;
+    --muted: 220 12% 16%;
+    --muted-foreground: 215 12% 52%;
 
-    --accent: 164 60% 44%;
+    --accent: 213 80% 54%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 72% 56%;
+    --destructive: 0 68% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 16% 88%;
-    --input: 220 16% 88%;
-    --ring: 234 62% 52%;
+    --border: 220 12% 18%;
+    --input: 220 12% 18%;
+    --ring: 213 80% 54%;
 
-    --radius: 0.75rem;
+    --radius: 0.625rem;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 234 62% 52%;
+    --sidebar-background: 220 15% 8%;
+    --sidebar-foreground: 210 20% 92%;
+    --sidebar-primary: 213 80% 54%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 18% 93%;
-    --sidebar-accent-foreground: 224 30% 12%;
-    --sidebar-border: 220 16% 88%;
-    --sidebar-ring: 234 62% 52%;
+    --sidebar-accent: 220 12% 16%;
+    --sidebar-accent-foreground: 210 20% 82%;
+    --sidebar-border: 220 12% 18%;
+    --sidebar-ring: 213 80% 54%;
 
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
-    --success: 152 60% 40%;
+    --success: 152 55% 42%;
     --success-foreground: 0 0% 100%;
-  }
 
-  .dark {
-    --background: 224 30% 8%;
-    --foreground: 210 20% 92%;
-
-    --card: 224 25% 12%;
-    --card-foreground: 210 20% 92%;
-
-    --popover: 224 25% 12%;
-    --popover-foreground: 210 20% 92%;
-
-    --primary: 234 62% 60%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 220 20% 18%;
-    --secondary-foreground: 210 20% 92%;
-
-    --muted: 220 20% 18%;
-    --muted-foreground: 220 10% 58%;
-
-    --accent: 164 60% 44%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 72% 50%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 220 16% 20%;
-    --input: 220 16% 20%;
-    --ring: 234 62% 60%;
-    --sidebar-background: 224 30% 8%;
-    --sidebar-foreground: 210 20% 92%;
-    --sidebar-primary: 234 62% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 20% 18%;
-    --sidebar-accent-foreground: 210 20% 92%;
-    --sidebar-border: 220 16% 20%;
-    --sidebar-ring: 234 62% 60%;
+    --metallic: 215 10% 36%;
+    --silver: 210 8% 72%;
   }
 }
 
@@ -98,6 +61,44 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+@layer utilities {
+  .glow-primary {
+    box-shadow: 0 0 20px -4px hsl(213 80% 54% / 0.35);
+  }
+  .glow-primary-hover:hover {
+    box-shadow: 0 0 28px -2px hsl(213 80% 54% / 0.5);
+  }
+  .card-metallic {
+    background: linear-gradient(145deg, hsl(220 15% 12%), hsl(220 15% 10%));
+    border-color: hsl(220 12% 20%);
+  }
+  .glass-border {
+    border: 1px solid hsl(220 12% 22%);
+  }
+  .text-gradient-silver {
+    background: linear-gradient(135deg, hsl(210 8% 82%), hsl(210 8% 62%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .animate-count {
+    animation: countUp 1.2s ease-out forwards;
+  }
+  @keyframes countUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  .shimmer-loading {
+    background: linear-gradient(90deg, hsl(220 12% 14%) 25%, hsl(220 12% 20%) 50%, hsl(220 12% 14%) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
   }
 }
