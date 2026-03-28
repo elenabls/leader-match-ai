@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import CandidateInputSection from "@/components/CandidateInputSection";
 import ResultsDisplay from "@/components/ResultsDisplay";
-import type { CandidateInput, AnalysisResult } from "@/lib/types";
+import { extractTextFromPdf } from "@/lib/pdf-utils";
+import type { CandidateFiles, CandidateInput, AnalysisResult } from "@/lib/types";
 import { Brain, Zap, TrendingUp, Shield, Users, Loader2 } from "lucide-react";
 
-const emptyCandidate: CandidateInput = { cv: "", supervisorNotes: "", recommendationLetter: "", peerReviews: "" };
+const emptyFiles: CandidateFiles = { cv: null, supervisorNotes: null, recommendationLetter: null, peerReviews: null };
 
 const scenarios = [
   { id: "crisis", label: "Crisis", description: "Speed and quick decisions matter most" },
@@ -17,14 +18,35 @@ const scenarios = [
 ];
 
 const Index = () => {
-  const [candidateA, setCandidateA] = useState<CandidateInput>({ ...emptyCandidate });
-  const [candidateB, setCandidateB] = useState<CandidateInput>({ ...emptyCandidate });
+  const [filesA, setFilesA] = useState<CandidateFiles>({ ...emptyFiles });
+  const [filesB, setFilesB] = useState<CandidateFiles>({ ...emptyFiles });
   const [scenario, setScenario] = useState("");
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState("");
 
-  const hasInput = (c: CandidateInput) => Object.values(c).some((v) => v.trim().length > 0);
-  const canEvaluate = hasInput(candidateA) && hasInput(candidateB) && scenario;
+  const hasFiles = (f: CandidateFiles) => Object.values(f).some((v) => v !== null);
+  const canEvaluate = hasFiles(filesA) && hasFiles(filesB) && scenario;
+
+  const extractTexts = async (files: CandidateFiles): Promise<CandidateInput> => {
+    const extract = async (file: File | null): Promise<string> => {
+      if (!file) return "";
+      try {
+        return await extractTextFromPdf(file);
+      } catch (err) {
+        console.error("PDF extraction error:", err);
+        toast.error(`Failed to parse ${file.name}. Ensure it's a valid PDF.`);
+        return "";
+      }
+    };
+
+    return {
+      cv: await extract(files.cv),
+      supervisorNotes: await extract(files.supervisorNotes),
+      recommendationLetter: await extract(files.recommendationLetter),
+      peerReviews: await extract(files.peerReviews),
+    };
+  };
 
   const handleEvaluate = async () => {
     if (!canEvaluate) return;
@@ -32,6 +54,19 @@ const Index = () => {
     setResult(null);
 
     try {
+      setStatus("Extracting text from PDFs...");
+      const [candidateA, candidateB] = await Promise.all([
+        extractTexts(filesA),
+        extractTexts(filesB),
+      ]);
+
+      const totalText = Object.values(candidateA).join("") + Object.values(candidateB).join("");
+      if (totalText.trim().length === 0) {
+        toast.error("No text could be extracted from the uploaded PDFs.");
+        return;
+      }
+
+      setStatus("Running multi-agent AI analysis...");
       const { data, error } = await supabase.functions.invoke("analyze-leaders", {
         body: { candidateA, candidateB, scenario },
       });
@@ -48,11 +83,13 @@ const Index = () => {
       }
 
       setResult(data as AnalysisResult);
+      toast.success("Analysis complete!");
     } catch (err) {
       console.error("Unexpected error:", err);
       toast.error("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
+      setStatus("");
     }
   };
 
@@ -65,9 +102,10 @@ const Index = () => {
             <Brain className="h-7 w-7" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">LeaderMatch AI</h1>
-          <p className="mt-1 text-lg font-medium text-muted-foreground">Advanced Decision System</p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Multi-agent AI analysis of leadership compatibility from CVs, reviews, and recommendations.
+          <p className="mt-1 text-lg font-medium text-muted-foreground">Intelligent Hiring Decision System</p>
+          <p className="mt-2 text-sm text-muted-foreground max-w-lg mx-auto">
+            Upload PDF documents — CVs, supervisor notes, recommendation letters, and peer reviews — 
+            and our 7-agent AI system will extract traits and evaluate leadership compatibility.
           </p>
         </div>
 
@@ -77,16 +115,16 @@ const Index = () => {
             title="Candidate A"
             subtitle="Production Head"
             icon={<Users className="h-5 w-5 text-primary" />}
-            value={candidateA}
-            onChange={setCandidateA}
+            files={filesA}
+            onFilesChange={setFilesA}
           />
 
           <CandidateInputSection
             title="Candidate B"
             subtitle="Quality Head"
             icon={<Shield className="h-5 w-5 text-primary" />}
-            value={candidateB}
-            onChange={setCandidateB}
+            files={filesB}
+            onFilesChange={setFilesB}
           />
 
           {/* Scenario */}
@@ -114,7 +152,7 @@ const Index = () => {
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Analyzing with AI Agents...
+                {status || "Processing..."}
               </>
             ) : (
               <>

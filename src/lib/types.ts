@@ -5,10 +5,26 @@ export interface CandidateInput {
   peerReviews: string;
 }
 
+export interface CandidateFiles {
+  cv: File | null;
+  supervisorNotes: File | null;
+  recommendationLetter: File | null;
+  peerReviews: File | null;
+}
+
+export interface KeywordSignals {
+  speed_keywords: string[];
+  quality_keywords: string[];
+  risk_keywords: string[];
+  stability_keywords: string[];
+  leadership_keywords: string[];
+}
+
 export interface CandidateTraits {
   speed: number;
   strictness: number;
   risk_tolerance: number;
+  reliability: number;
   communication_style: string;
   emotional_intelligence: number;
   experience: number;
@@ -29,9 +45,11 @@ export interface FeedbackAnalysis {
 
 export interface CandidateProfile {
   name: string;
+  classification: "Speed-oriented" | "Quality-oriented" | "Balanced";
   traits: CandidateTraits;
   cv_analysis: CvAnalysis;
   feedback_analysis: FeedbackAnalysis;
+  detected_keywords: KeywordSignals;
 }
 
 export interface Interaction {
