@@ -179,7 +179,7 @@ Analyze through all 8 agents and return structured evaluation.`;
       required: ["name", "classification", "suggested_role_fit", "traits", "cv_analysis", "feedback_analysis", "detected_keywords"],
     };
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetchWithRetry("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
