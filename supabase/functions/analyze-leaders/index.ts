@@ -32,110 +32,128 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const systemPrompt = `You are a multi-agent leadership evaluation system. You will analyze two candidates and return a structured JSON evaluation.
+    const systemPrompt = `You are a 7-agent leadership evaluation system that analyzes candidate documents using keyword-based reasoning. Process the input through these agents sequentially:
 
-You operate as 6 sequential agents:
+AGENT 1 - PDF Parsing Agent:
+The text has already been extracted from PDF documents. Combine all text sources per candidate into a unified profile.
 
-AGENT 1 - CV Agent: Extract from each candidate's CV/resume:
-- experience_level (1-10)
-- technical_skill (1-10)
-- leadership_indicators (list of strings)
+AGENT 2 - Keyword & Signal Detection Agent:
+Scan the text for specific keywords and phrases indicating traits. Report which keywords were found.
 
-AGENT 2 - Feedback Agent: Analyze supervisor notes, recommendation letters, and peer reviews:
-- communication_style: "collaborative" | "directive" | "aggressive" | "passive"
-- reliability (1-10)
+Keyword categories to detect:
+- Speed / Execution: fast, rapid, delivered quickly, accelerated, execution, deadline-driven, high throughput, agile, quick turnaround, on-time delivery, efficient
+- Quality / Precision: detail-oriented, quality, accuracy, compliance, precision, standards, defect reduction, meticulous, thorough, zero-defect, audit, inspection
+- Risk-taking: innovative, experimental, bold, transformation, change-driven, disruptive, pioneering, entrepreneurial, venture, startup
+- Stability / Reliability: consistent, reliable, process-driven, structured, disciplined, methodical, systematic, dependable, steady, predictable
+- Communication / Leadership: collaborative, decisive, assertive, team-oriented, leadership, mentoring, coaching, empowering, strategic, visionary, influential
+
+Count frequency and strength of signals. Report the actual keywords found in each category.
+
+AGENT 3 - Trait Extraction Agent:
+Convert detected signals into structured scores (1-10):
+- speed (execution ability)
+- strictness (quality/precision focus)
+- risk_tolerance
+- reliability (consistency)
+- communication_style (descriptive string)
 - emotional_intelligence (1-10)
-- leadership_behavior_signals (list of strings)
+- experience (based on years/seniority indicators)
 
-AGENT 3 - Trait Aggregation Agent: Combine into structured traits:
-- speed (1-10, execution speed)
-- strictness (1-10, attention to detail)
-- risk_tolerance (1-10)
-- communication_style: string
-- emotional_intelligence (1-10)
-- experience (1-10)
+AGENT 4 - Role Classification Agent:
+Classify each candidate as one of:
+- "Speed-oriented" (dominant speed trait)
+- "Quality-oriented" (dominant strictness trait)
+- "Balanced" (no single dominant trait)
 
-AGENT 4 - Interaction Agent: Compare the two candidates and detect:
-- conflicts (list of specific conflict descriptions)
-- alignments (list of alignment descriptions)
-- complementarities (list of complementary trait descriptions)
+AGENT 5 - Interaction Agent:
+Compare both candidates. Detect:
+- Conflicts (e.g. very fast vs very strict)
+- Alignments (similar communication/leadership style)
+- Complementarities (traits that balance each other)
 
-AGENT 5 - Scenario Agent: Given the scenario "${scenario}", adjust importance weights:
+AGENT 6 - Scenario Agent:
+Adjust weights for scenario "${scenario}":
 - Crisis: prioritize speed and experience
 - Growth: prioritize risk-taking and innovation
-- Stability: prioritize strictness and consistency
+- Stability: prioritize quality, strictness, and reliability
 
-AGENT 6 - Decision Agent: Calculate compatibility score (0-100) and generate final output.
+AGENT 7 - Decision Agent:
+Compute Compatibility Score (0-100). Generate strengths, risks, explanation, and scenario-based recommendations. Also compute what the score would be under ALL three scenarios.
 
-IMPORTANT RULES:
-- Be SPECIFIC to the input text. Do not give generic answers.
-- Extract actual details from the provided text.
-- If text is vague or short, infer conservatively and note low confidence.
-- Show clear reasoning for the score.
-
-Return ONLY valid JSON matching this exact structure (no markdown, no extra text):`;
+CRITICAL RULES:
+- Base ALL scores on actual keywords and phrases found in the text
+- Report detected keywords for transparency
+- Be SPECIFIC — reference actual content from the documents
+- If documents are sparse, note low confidence and score conservatively
+- Show clear reasoning connecting keywords → traits → scores`;
 
     const userPrompt = `CANDIDATE A (Production Head):
-CV/Resume: ${candidateA.cv || "Not provided"}
-Supervisor Notes: ${candidateA.supervisorNotes || "Not provided"}
-Recommendation Letter: ${candidateA.recommendationLetter || "Not provided"}
-Peer/Manager Reviews: ${candidateA.peerReviews || "Not provided"}
+CV/Resume text: ${candidateA.cv || "[Not provided]"}
+Supervisor Notes text: ${candidateA.supervisorNotes || "[Not provided]"}
+Recommendation Letter text: ${candidateA.recommendationLetter || "[Not provided]"}
+Peer/Manager Reviews text: ${candidateA.peerReviews || "[Not provided]"}
 
 CANDIDATE B (Quality Head):
-CV/Resume: ${candidateB.cv || "Not provided"}
-Supervisor Notes: ${candidateB.supervisorNotes || "Not provided"}
-Recommendation Letter: ${candidateB.recommendationLetter || "Not provided"}
-Peer/Manager Reviews: ${candidateB.peerReviews || "Not provided"}
+CV/Resume text: ${candidateB.cv || "[Not provided]"}
+Supervisor Notes text: ${candidateB.supervisorNotes || "[Not provided]"}
+Recommendation Letter text: ${candidateB.recommendationLetter || "[Not provided]"}
+Peer/Manager Reviews text: ${candidateB.peerReviews || "[Not provided]"}
 
 SCENARIO: ${scenario}
 
-Return the analysis as JSON with this structure:
-{
-  "candidateA": {
-    "name": "extracted or inferred name",
-    "traits": {
-      "speed": number,
-      "strictness": number,
-      "risk_tolerance": number,
-      "communication_style": string,
-      "emotional_intelligence": number,
-      "experience": number
-    },
-    "cv_analysis": {
-      "experience_level": number,
-      "technical_skill": number,
-      "leadership_indicators": [string]
-    },
-    "feedback_analysis": {
-      "communication_style": string,
-      "reliability": number,
-      "emotional_intelligence": number,
-      "leadership_behavior_signals": [string]
-    }
-  },
-  "candidateB": { same structure },
-  "interaction": {
-    "conflicts": [string],
-    "alignments": [string],
-    "complementarities": [string]
-  },
-  "evaluation": {
-    "compatibility_score": number,
-    "strengths": [string],
-    "risks": [string],
-    "explanation": string,
-    "scenario_insight": {
-      "best_scenario": string,
-      "current_scenario_fit": string,
-      "score_variations": {
-        "crisis": number,
-        "growth": number,
-        "stability": number
-      }
-    },
-    "reasoning": [string]
-  }
-}`;
+Analyze these candidates through all 7 agents and return the structured evaluation.`;
+
+    const candidateSchema = {
+      type: "object" as const,
+      properties: {
+        name: { type: "string" as const },
+        classification: { type: "string" as const, enum: ["Speed-oriented", "Quality-oriented", "Balanced"] },
+        traits: {
+          type: "object" as const,
+          properties: {
+            speed: { type: "number" as const },
+            strictness: { type: "number" as const },
+            risk_tolerance: { type: "number" as const },
+            reliability: { type: "number" as const },
+            communication_style: { type: "string" as const },
+            emotional_intelligence: { type: "number" as const },
+            experience: { type: "number" as const },
+          },
+          required: ["speed", "strictness", "risk_tolerance", "reliability", "communication_style", "emotional_intelligence", "experience"],
+        },
+        cv_analysis: {
+          type: "object" as const,
+          properties: {
+            experience_level: { type: "number" as const },
+            technical_skill: { type: "number" as const },
+            leadership_indicators: { type: "array" as const, items: { type: "string" as const } },
+          },
+          required: ["experience_level", "technical_skill", "leadership_indicators"],
+        },
+        feedback_analysis: {
+          type: "object" as const,
+          properties: {
+            communication_style: { type: "string" as const },
+            reliability: { type: "number" as const },
+            emotional_intelligence: { type: "number" as const },
+            leadership_behavior_signals: { type: "array" as const, items: { type: "string" as const } },
+          },
+          required: ["communication_style", "reliability", "emotional_intelligence", "leadership_behavior_signals"],
+        },
+        detected_keywords: {
+          type: "object" as const,
+          properties: {
+            speed_keywords: { type: "array" as const, items: { type: "string" as const } },
+            quality_keywords: { type: "array" as const, items: { type: "string" as const } },
+            risk_keywords: { type: "array" as const, items: { type: "string" as const } },
+            stability_keywords: { type: "array" as const, items: { type: "string" as const } },
+            leadership_keywords: { type: "array" as const, items: { type: "string" as const } },
+          },
+          required: ["speed_keywords", "quality_keywords", "risk_keywords", "stability_keywords", "leadership_keywords"],
+        },
+      },
+      required: ["name", "classification", "traits", "cv_analysis", "feedback_analysis", "detected_keywords"],
+    };
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -153,86 +171,12 @@ Return the analysis as JSON with this structure:
           type: "function",
           function: {
             name: "return_evaluation",
-            description: "Return the structured leadership evaluation result",
+            description: "Return the structured 7-agent leadership evaluation result with keyword detection",
             parameters: {
               type: "object",
               properties: {
-                candidateA: {
-                  type: "object",
-                  properties: {
-                    name: { type: "string" },
-                    traits: {
-                      type: "object",
-                      properties: {
-                        speed: { type: "number" },
-                        strictness: { type: "number" },
-                        risk_tolerance: { type: "number" },
-                        communication_style: { type: "string" },
-                        emotional_intelligence: { type: "number" },
-                        experience: { type: "number" },
-                      },
-                      required: ["speed", "strictness", "risk_tolerance", "communication_style", "emotional_intelligence", "experience"],
-                    },
-                    cv_analysis: {
-                      type: "object",
-                      properties: {
-                        experience_level: { type: "number" },
-                        technical_skill: { type: "number" },
-                        leadership_indicators: { type: "array", items: { type: "string" } },
-                      },
-                      required: ["experience_level", "technical_skill", "leadership_indicators"],
-                    },
-                    feedback_analysis: {
-                      type: "object",
-                      properties: {
-                        communication_style: { type: "string" },
-                        reliability: { type: "number" },
-                        emotional_intelligence: { type: "number" },
-                        leadership_behavior_signals: { type: "array", items: { type: "string" } },
-                      },
-                      required: ["communication_style", "reliability", "emotional_intelligence", "leadership_behavior_signals"],
-                    },
-                  },
-                  required: ["name", "traits", "cv_analysis", "feedback_analysis"],
-                },
-                candidateB: {
-                  type: "object",
-                  properties: {
-                    name: { type: "string" },
-                    traits: {
-                      type: "object",
-                      properties: {
-                        speed: { type: "number" },
-                        strictness: { type: "number" },
-                        risk_tolerance: { type: "number" },
-                        communication_style: { type: "string" },
-                        emotional_intelligence: { type: "number" },
-                        experience: { type: "number" },
-                      },
-                      required: ["speed", "strictness", "risk_tolerance", "communication_style", "emotional_intelligence", "experience"],
-                    },
-                    cv_analysis: {
-                      type: "object",
-                      properties: {
-                        experience_level: { type: "number" },
-                        technical_skill: { type: "number" },
-                        leadership_indicators: { type: "array", items: { type: "string" } },
-                      },
-                      required: ["experience_level", "technical_skill", "leadership_indicators"],
-                    },
-                    feedback_analysis: {
-                      type: "object",
-                      properties: {
-                        communication_style: { type: "string" },
-                        reliability: { type: "number" },
-                        emotional_intelligence: { type: "number" },
-                        leadership_behavior_signals: { type: "array", items: { type: "string" } },
-                      },
-                      required: ["communication_style", "reliability", "emotional_intelligence", "leadership_behavior_signals"],
-                    },
-                  },
-                  required: ["name", "traits", "cv_analysis", "feedback_analysis"],
-                },
+                candidateA: candidateSchema,
+                candidateB: candidateSchema,
                 interaction: {
                   type: "object",
                   properties: {
