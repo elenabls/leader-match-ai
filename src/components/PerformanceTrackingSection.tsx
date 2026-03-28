@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { PerformanceRecord } from "@/lib/types";
 import { Activity, CheckCircle, XCircle, Clock } from "lucide-react";
+import AnimatedCounter from "./AnimatedCounter";
 
 const PerformanceTrackingSection = () => {
   const [records, setRecords] = useState<PerformanceRecord[]>([]);
@@ -49,11 +50,11 @@ const PerformanceTrackingSection = () => {
           { label: "Successful", value: successCount, color: "text-emerald-400" },
           { label: "Failed", value: failCount, color: "text-destructive" },
           { label: "Pending", value: pendingCount, color: "text-muted-foreground" },
-          { label: "Avg Score", value: `${avgScore}%`, color: "text-primary" },
+          { label: "Avg Score", value: avgScore, color: "text-primary", suffix: "%" },
         ].map((stat) => (
           <Card key={stat.label} className="card-metallic glass-border text-center py-4">
             <CardContent className="p-0">
-              <p className={`text-2xl font-bold ${stat.color} animate-count`}>{stat.value}</p>
+              <AnimatedCounter value={stat.value} suffix={stat.suffix || ""} className={`text-2xl font-bold ${stat.color}`} />
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">{stat.label}</p>
             </CardContent>
           </Card>
@@ -67,7 +68,7 @@ const PerformanceTrackingSection = () => {
             <Activity className="h-4 w-4 text-primary" />
             Pairing History
           </CardTitle>
-          <CardDescription>Track outcomes of leader pairings to improve future predictions.</CardDescription>
+          <CardDescription>Track outcomes to improve future predictions.</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -76,7 +77,7 @@ const PerformanceTrackingSection = () => {
             </div>
           ) : records.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">
-              No performance records yet. Run analyses and they'll appear here automatically.
+              No performance records yet. Run analyses and they'll appear here.
             </p>
           ) : (
             <div className="overflow-x-auto">

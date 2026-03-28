@@ -1,6 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import CandidateProfileCard from "./CandidateProfileCard";
+import RadarChartComponent from "./RadarChart";
+import AnimatedCounter from "./AnimatedCounter";
 import type { AnalysisResult } from "@/lib/types";
 import { CheckCircle, AlertTriangle, Brain, Zap, ArrowRightLeft, TrendingUp, Shield, Activity, Info } from "lucide-react";
 
@@ -13,7 +15,7 @@ const ResultsDisplay = ({ result }: Props) => {
   const score = evaluation.compatibility_score;
 
   const scoreColor = score >= 75 ? "text-emerald-400" : score >= 50 ? "text-amber-400" : "text-destructive";
-  const scoreBorder = score >= 75 ? "border-emerald-500/20" : score >= 50 ? "border-amber-500/20" : "border-destructive/20";
+  const scoreBorder = score >= 75 ? "border-emerald-500/30" : score >= 50 ? "border-amber-500/30" : "border-destructive/30";
   const scoreGlow = score >= 75 ? "shadow-emerald-500/10" : score >= 50 ? "shadow-amber-500/10" : "shadow-destructive/10";
 
   const scenarioIcons: Record<string, React.ReactNode> = {
@@ -22,7 +24,6 @@ const ResultsDisplay = ({ result }: Props) => {
     stability: <Shield className="h-4 w-4" />,
   };
 
-  // Determine confidence based on data completeness
   const aHasExtra = candidateA.feedback_analysis?.leadership_behavior_signals?.length > 0;
   const bHasExtra = candidateB.feedback_analysis?.leadership_behavior_signals?.length > 0;
   const confidence = aHasExtra && bHasExtra ? "High" : aHasExtra || bHasExtra ? "Medium" : "Low";
@@ -30,7 +31,7 @@ const ResultsDisplay = ({ result }: Props) => {
 
   return (
     <div className="space-y-6 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
-      {/* Confidence badge */}
+      {/* Confidence */}
       <Card className="border-border/50 bg-secondary/30">
         <CardContent className="flex items-center gap-3 py-3">
           <Info className="h-4 w-4 text-primary shrink-0" />
@@ -42,18 +43,29 @@ const ResultsDisplay = ({ result }: Props) => {
         </CardContent>
       </Card>
 
-      {/* Candidate Profiles */}
+      {/* Profiles */}
       <div className="grid gap-5 sm:grid-cols-2">
         <CandidateProfileCard profile={candidateA} />
         <CandidateProfileCard profile={candidateB} />
       </div>
+
+      {/* Radar Chart */}
+      <Card className="card-metallic glass-border shadow-lg">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Trait Comparison</CardTitle>
+          <CardDescription>Radar visualization of both leaders</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <RadarChartComponent leaders={[candidateA, candidateB]} />
+        </CardContent>
+      </Card>
 
       {/* Compatibility Score */}
       <Card className={`card-metallic glass-border shadow-lg ${scoreGlow} text-center`}>
         <CardContent className="py-10">
           <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Compatibility Score</p>
           <div className={`mx-auto mb-4 flex h-32 w-32 items-center justify-center rounded-full border-2 ${scoreBorder} bg-secondary/30`}>
-            <span className={`text-5xl font-bold ${scoreColor} animate-count`}>{score}%</span>
+            <AnimatedCounter value={score} className={`text-5xl font-bold ${scoreColor}`} />
           </div>
           <p className="text-sm text-muted-foreground">
             Best suited for: <span className="font-semibold text-foreground">{evaluation.scenario_insight.best_scenario}</span>
@@ -150,7 +162,7 @@ const ResultsDisplay = ({ result }: Props) => {
         </CardContent>
       </Card>
 
-      {/* Scenario Insight */}
+      {/* Scenario Comparison */}
       <Card className="card-metallic glass-border shadow-lg">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
@@ -164,13 +176,12 @@ const ResultsDisplay = ({ result }: Props) => {
             {(["crisis", "growth", "stability"] as const).map((s) => {
               const val = evaluation.scenario_insight.score_variations[s];
               const isBest = evaluation.scenario_insight.best_scenario.toLowerCase() === s;
-              const sColor = val >= 70 ? "text-emerald-400" : val >= 50 ? "text-amber-400" : "text-destructive";
               return (
                 <div key={s} className={`rounded-lg border p-4 text-center transition-all duration-200 ${isBest ? "border-primary/30 bg-primary/5 glow-primary" : "border-border/50 bg-secondary/20"}`}>
                   <div className="mb-1 flex items-center justify-center gap-1 text-xs text-muted-foreground capitalize">
                     {scenarioIcons[s]} {s}
                   </div>
-                  <p className={`text-2xl font-bold ${isBest ? "text-primary" : sColor} animate-count`}>{val}%</p>
+                  <AnimatedCounter value={val} className={`text-2xl font-bold ${isBest ? "text-primary" : val >= 70 ? "text-emerald-400" : val >= 50 ? "text-amber-400" : "text-destructive"}`} />
                   {isBest && <p className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-primary">Best Fit</p>}
                 </div>
               );
