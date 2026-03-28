@@ -13,6 +13,22 @@ interface CandidateInput {
   peerReviews: string;
 }
 
+async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3): Promise<Response> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const response = await fetch(url, options);
+    if (response.ok) return response;
+    if (response.status === 503 || response.status === 429) {
+      const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
+      console.log(`Retry ${attempt + 1}/${maxRetries} after ${Math.round(delay)}ms (status ${response.status})`);
+      await new Promise((r) => setTimeout(r, delay));
+      continue;
+    }
+    return response; // Non-retryable error
+  }
+  // Final attempt
+  return fetch(url, options);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
