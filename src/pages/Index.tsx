@@ -2,8 +2,9 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import Sidebar from "@/components/Sidebar";
+import MatrixBackground from "@/components/MatrixBackground";
 import CandidateInputSection from "@/components/CandidateInputSection";
 import ResultsDisplay from "@/components/ResultsDisplay";
 import BulkAnalysisSection from "@/components/BulkAnalysisSection";
@@ -12,7 +13,7 @@ import AnalyticsSection from "@/components/AnalyticsSection";
 import ExportSection from "@/components/ExportSection";
 import { extractTextFromPdf } from "@/lib/pdf-utils";
 import type { CandidateFiles, CandidateInput, AnalysisResult, BusinessFunction } from "@/lib/types";
-import { Brain, Zap, TrendingUp, Shield, Users, Loader2, Factory, Cog, Lightbulb, Settings, Activity, BarChart3, Download, FileSpreadsheet } from "lucide-react";
+import { Zap, TrendingUp, Shield, Users, Loader2, Factory, Cog, Lightbulb, Settings } from "lucide-react";
 
 const emptyFiles: CandidateFiles = { cv: null, supervisorNotes: null, recommendationLetter: null, peerReviews: null };
 
@@ -42,6 +43,7 @@ const statusSteps = [
 ];
 
 const Index = () => {
+  const [activeTab, setActiveTab] = useState("analyze");
   const [filesA, setFilesA] = useState<CandidateFiles>({ ...emptyFiles });
   const [filesB, setFilesB] = useState<CandidateFiles>({ ...emptyFiles });
   const [scenario, setScenario] = useState("");
@@ -128,52 +130,11 @@ const Index = () => {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Subtle top accent line */}
-      <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-primary to-transparent" />
-
-      <div className="mx-auto max-w-5xl px-4 py-12">
-        {/* Header */}
-        <div className="mb-10 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 glow-primary">
-            <Brain className="h-7 w-7 text-primary" />
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            LeaderMatch <span className="text-primary">AI</span>
-          </h1>
-          <p className="mt-1.5 text-sm font-medium tracking-wide uppercase text-gradient-silver">
-            Organizational Decision Intelligence System
-          </p>
-          <p className="mt-3 text-sm text-muted-foreground max-w-lg mx-auto leading-relaxed">
-            Analyze leaders from uploaded documents, classify them dynamically, evaluate compatibility,
-            and track performance over time.
-          </p>
-        </div>
-
-        {/* Tabs */}
-        <Tabs defaultValue="analyze" className="space-y-8">
-          <TabsList className="grid w-full grid-cols-5 bg-secondary/50 glass-border p-1 h-auto">
-            {[
-              { value: "analyze", icon: Brain, label: "Analysis" },
-              { value: "bulk", icon: FileSpreadsheet, label: "Bulk" },
-              { value: "tracking", icon: Activity, label: "Tracking" },
-              { value: "analytics", icon: BarChart3, label: "Analytics" },
-              { value: "export", icon: Download, label: "Export" },
-            ].map((tab) => (
-              <TabsTrigger
-                key={tab.value}
-                value={tab.value}
-                className="text-xs sm:text-sm data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none py-2.5 transition-all duration-200"
-              >
-                <tab.icon className="h-3.5 w-3.5 mr-1.5 hidden sm:inline" />
-                {tab.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-
-          {/* Tab 1: Individual Analysis */}
-          <TabsContent value="analyze" className="space-y-6">
+  const renderContent = () => {
+    switch (activeTab) {
+      case "analyze":
+        return (
+          <div className="space-y-6">
             <div className="space-y-6">
               <CandidateInputSection
                 title="Leader A"
@@ -190,7 +151,6 @@ const Index = () => {
                 onFilesChange={setFilesB}
               />
 
-              {/* Business Domain */}
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm font-medium text-foreground">
                   <Settings className="h-4 w-4 text-primary" />
@@ -208,7 +168,6 @@ const Index = () => {
                 </Select>
               </div>
 
-              {/* Scenario */}
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm font-medium text-foreground">
                   <TrendingUp className="h-4 w-4 text-primary" />
@@ -226,11 +185,10 @@ const Index = () => {
                 </Select>
               </div>
 
-              {/* Button */}
               <Button
                 onClick={handleEvaluate}
                 disabled={!canEvaluate || loading}
-                className="w-full glow-primary-hover transition-all duration-300"
+                className="w-full glow-primary-hover transition-all duration-300 h-12 text-sm font-semibold"
                 size="lg"
               >
                 {loading ? (
@@ -240,29 +198,75 @@ const Index = () => {
                 )}
               </Button>
 
-              {/* Loading progress */}
               {loading && (
                 <div className="space-y-3 animate-in fade-in-0 duration-300">
-                  <div className="h-1 w-full rounded-full bg-secondary overflow-hidden">
+                  <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">
                     <div
-                      className="h-1 rounded-full bg-primary transition-all duration-1000 ease-out"
+                      className="h-1.5 rounded-full bg-gradient-to-r from-primary to-primary/60 transition-all duration-1000 ease-out"
                       style={{ width: `${((statusIdx + 1) / statusSteps.length) * 100}%` }}
                     />
                   </div>
-                  <p className="text-xs text-center text-muted-foreground">{status}</p>
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                    <p className="text-xs text-muted-foreground">{status}</p>
+                  </div>
                 </div>
               )}
             </div>
-
             {result && <ResultsDisplay result={result} />}
-          </TabsContent>
+          </div>
+        );
+      case "bulk":
+        return <BulkAnalysisSection />;
+      case "tracking":
+        return <PerformanceTrackingSection />;
+      case "analytics":
+        return <AnalyticsSection />;
+      case "export":
+        return <ExportSection />;
+      default:
+        return null;
+    }
+  };
 
-          <TabsContent value="bulk"><BulkAnalysisSection /></TabsContent>
-          <TabsContent value="tracking"><PerformanceTrackingSection /></TabsContent>
-          <TabsContent value="analytics"><AnalyticsSection /></TabsContent>
-          <TabsContent value="export"><ExportSection /></TabsContent>
-        </Tabs>
-      </div>
+  return (
+    <div className="min-h-screen bg-background relative">
+      <MatrixBackground />
+      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+
+      {/* Main content - offset by sidebar */}
+      <main className="ml-56 relative z-10 min-h-screen">
+        {/* Top bar */}
+        <div className="sticky top-0 z-20 border-b border-border/30 bg-background/80 backdrop-blur-xl px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-lg font-bold text-foreground tracking-tight">
+                {activeTab === "analyze" && "Individual Analysis"}
+                {activeTab === "bulk" && "Bulk Analysis"}
+                {activeTab === "tracking" && "Performance Tracking"}
+                {activeTab === "analytics" && "Analytics Dashboard"}
+                {activeTab === "export" && "Export Reports"}
+              </h1>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {activeTab === "analyze" && "Evaluate compatibility between two leaders"}
+                {activeTab === "bulk" && "Process multiple leaders from Excel data"}
+                {activeTab === "tracking" && "Historical pairing outcomes and trends"}
+                {activeTab === "analytics" && "Visualize leader performance and insights"}
+                {activeTab === "export" && "Download comprehensive analysis reports"}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">System Online</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="max-w-5xl px-8 py-8">
+          {renderContent()}
+        </div>
+      </main>
     </div>
   );
 };
