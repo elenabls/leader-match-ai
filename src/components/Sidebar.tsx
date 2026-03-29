@@ -1,4 +1,4 @@
-import { Brain, FileSpreadsheet, Activity, BarChart3, Download, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import { Brain, FileSpreadsheet, Activity, BarChart3, Download, Users, ChevronLeft, ChevronRight, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
@@ -8,6 +8,7 @@ interface Props {
 }
 
 const navItems = [
+  { id: "home", label: "Dashboard", icon: Home, desc: "Overview & quick actions" },
   { id: "analyze", label: "Analysis", icon: Brain, desc: "Individual pair evaluation" },
   { id: "bulk", label: "Bulk Analysis", icon: FileSpreadsheet, desc: "Multi-leader processing" },
   { id: "tracking", label: "Tracking", icon: Activity, desc: "Performance history" },
