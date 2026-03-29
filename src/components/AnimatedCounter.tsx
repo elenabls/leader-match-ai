@@ -7,7 +7,7 @@ interface Props {
   className?: string;
 }
 
-const AnimatedCounter = ({ value, suffix = "%", duration = 1200, className = "" }: Props) => {
+const AnimatedCounter = ({ value, suffix = "", duration = 1200, className = "" }: Props) => {
   const [display, setDisplay] = useState(0);
   const ref = useRef<number>(0);
 
