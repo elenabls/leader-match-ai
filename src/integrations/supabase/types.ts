@@ -22,6 +22,7 @@ export type Database = {
           name: string
           suggested_role_fit: string
           traits: Json
+          user_id: string | null
         }
         Insert: {
           classification: string
@@ -30,6 +31,7 @@ export type Database = {
           name: string
           suggested_role_fit: string
           traits?: Json
+          user_id?: string | null
         }
         Update: {
           classification?: string
@@ -38,6 +40,7 @@ export type Database = {
           name?: string
           suggested_role_fit?: string
           traits?: Json
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -53,6 +56,7 @@ export type Database = {
           risks: string[] | null
           scenario: string
           strengths: string[] | null
+          user_id: string | null
         }
         Insert: {
           compatibility_score?: number
@@ -65,6 +69,7 @@ export type Database = {
           risks?: string[] | null
           scenario: string
           strengths?: string[] | null
+          user_id?: string | null
         }
         Update: {
           compatibility_score?: number
@@ -77,6 +82,28 @@ export type Database = {
           risks?: string[] | null
           scenario?: string
           strengths?: string[] | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          company_name: string
+          created_at: string
+          full_name: string
+          id: string
+        }
+        Insert: {
+          company_name?: string
+          created_at?: string
+          full_name?: string
+          id: string
+        }
+        Update: {
+          company_name?: string
+          created_at?: string
+          full_name?: string
+          id?: string
         }
         Relationships: []
       }
